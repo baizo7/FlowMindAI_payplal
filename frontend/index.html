@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FlowMind AI — Payment Operations Assistant</title>
+<style>
+  :root {
+    --ink: #16211b;
+    --ink-soft: #4b5a51;
+    --paper: #f6f4ee;
+    --panel: #ffffff;
+    --line: #dfe3da;
+    --accent: #0b5d3b;
+    --accent-hover: #08492e;
+    --accent-soft: #e4efe8;
+    --amount: #1f3b2c;
+    --warn: #a9480f;
+    --warn-soft: #fbe7da;
+    --radius: 10px;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 12px; }
+  header h1 {
+    font-size: 20px;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  header .tag {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    background: var(--paper);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+  }
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  
+  main {
+    display: grid;
+    grid-template-columns: minmax(360px, 1.05fr) minmax(400px, 1.25fr);
+    gap: 0;
+    min-height: calc(100vh - 73px);
+  }
+  @media (max-width: 920px) {
+    main { grid-template-columns: 1fr; }
+  }
+  section.panel {
+    padding: 24px 30px;
+  }
+  .chat-panel {
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    background: #faf9f6;
+  }
+  .dash-panel { background: var(--paper); overflow-y: auto; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+  @media (max-width: 1180px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .stat .label { font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--ink-soft); font-weight: 600; }
+  .stat .value { font-size: 20px; margin-top: 4px; color: var(--amount); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  h2 { font-size: 14px; margin: 24px 0 10px; color: var(--ink-soft); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  h2:first-of-type { margin-top: 0; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+  th, td { text-align: left; padding: 10px 12px; font-size: 13px; border-bottom: 1px solid var(--line); }
+  th { color: var(--ink-soft); font-weight: 600; font-size: 11px; text-transform: uppercase; background: #faf9f5; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+  
+  .status { padding: 3px 8px; border-radius: 99px; font-size: 11px; display: inline-block; font-weight: 600; text-transform: capitalize; }
+  .status.paid { background: var(--accent-soft); color: var(--accent); }
+  .status.awaiting_payment { background: #fdf2d0; color: #855b00; }
+  .status.draft { background: #f1ede1; color: var(--ink-soft); }
+  .status.overdue { background: var(--warn-soft); color: var(--warn); }
+  .status.captured { background: var(--accent-soft); color: var(--accent); }
+  .status.created { background: #f1ede1; color: var(--ink-soft); }
+
+  .messages { flex: 1; overflow-y: auto; margin-bottom: 12px; padding-right: 4px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 94%; }
+  .msg.user { align-self: flex-end; }
+  .msg.agent { align-self: flex-start; }
+  
+  .msg .bubble {
+    display: inline-block;
+    padding: 11px 15px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: left;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .msg.user .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 2px; }
+  .msg.agent .bubble { background: var(--panel); border: 1px solid var(--line); color: var(--ink); border-bottom-left-radius: 2px; }
+
+  /* Autonomous Agent Trace Accordion */
+  .agent-trace {
+    margin-top: 8px;
+    font-size: 12px;
+    background: #f4f6f3;
+    border: 1px solid #d8dfd5;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .agent-trace summary {
+    padding: 6px 10px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent);
+    user-select: none;
+    font-family: ui-monospace, monospace;
+    font-size: 11.5px;
+  }
+  .agent-trace summary:hover { background: #ebf1e9; }
+  .trace-content {
+    padding: 8px 10px;
+    border-top: 1px dashed #d8dfd5;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: #3b4d42;
+    background: #ffffff;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+  .trace-item { padding: 3px 0; border-bottom: 1px solid #f0f0f0; }
+  .trace-item:last-child { border-bottom: none; }
+  .trace-tag { font-weight: bold; color: var(--accent); }
+
+  /* Quick-action chips */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .chip {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    padding: 5px 11px;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  form { display: flex; gap: 8px; }
+  input[type=text] {
+    flex: 1;
+    padding: 11px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--panel);
+    color: var(--ink);
+  }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button.btn-primary {
+    padding: 11px 18px;
+    border-radius: var(--radius);
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease;
+  }
+  button.btn-primary:hover { background: var(--accent-hover); }
+  button.btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+  button.btn-secondary {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  button.btn-secondary:hover { background: #f2f2f0; }
+
+  button.btn-xs {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+  }
+  button.btn-xs:hover { background: var(--accent-hover); }
+
+  .empty { font-size: 13px; color: var(--ink-soft); padding: 14px; text-align: center; }
+  a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  a:hover { text-decoration: underline; }
+
+  /* Modal Dialogs */
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+  }
+  .modal {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 28px 32px;
+    max-width: 580px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+  .modal-header h3 { margin: 0; font-size: 18px; color: var(--ink); }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink-soft); }
+  .hidden { display: none !important; }
+
+  /* Invoice Print View */
+  .inv-paper {
+    border: 1px solid var(--line);
+    padding: 24px;
+    border-radius: 8px;
+    background: #fff;
+  }
+  .inv-meta { display: flex; justify-content: space-between; margin-bottom: 18px; }
+  .inv-items { width: 100%; border: 1px solid var(--line); margin: 16px 0; }
+  .inv-total { text-align: right; font-size: 18px; font-weight: 700; margin-top: 10px; color: var(--amount); }
+  .inv-stamp {
+    display: inline-block;
+    padding: 6px 14px;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-radius: 4px;
+    margin-top: 12px;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>FlowMind AI</h1>
+    <span class="tag">PayPal Orders v2 + Gemini 3.5 Agent</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn-secondary" onclick="openAuditModal()">🔍 AI Audit Trail</button>
+    <button class="btn-secondary" onclick="resetDemo()">🔄 Reset Demo ($0)</button>
+  </div>
+</header>
+
+<main>
+  <!-- Left Panel: Conversational Assistant -->
+  <section class="panel chat-panel">
+    <h2>Conversational Operations</h2>
+    <div id="messages" class="messages"></div>
+
+    <!-- Quick action prompt chips -->
+    <div class="chips">
+      <button class="chip" onclick="sendPrompt('Create an invoice for Priya at priya@example.com for $150 for logo design')">+ New $150 Invoice</button>
+      <button class="chip" onclick="sendPrompt('Create a payment link for INV-0001')">🔗 PayPal Link</button>
+      <button class="chip" onclick="sendPrompt('Capture the payment for INV-0001')">⚡ Capture Payment</button>
+      <button class="chip" onclick="sendPrompt('What is my financial summary?')">📊 Financial Summary</button>
+      <button class="chip" onclick="sendPrompt('Send reminders for overdue invoices')">⏰ Send Reminders</button>
+      <button class="chip" onclick="sendPrompt('Show all invoices')">📋 List Invoices</button>
+    </div>
+
+    <form id="chat-form">
+      <input id="chat-input" type="text" autocomplete="off"
+        placeholder="e.g. Create an invoice for Priya at priya@example.com for $150 for logo design" />
+      <button type="submit" id="send-btn" class="btn-primary">Send</button>
+    </form>
+  </section>
+
+  <!-- Right Panel: Live Financial Dashboard -->
+  <section class="panel dash-panel">
+    <h2>Financial Overview</h2>
+    <div class="stats" id="stats"></div>
+
+    <h2>Invoices (Click ID to Preview)</h2>
+    <table id="invoices-table">
+      <thead>
+        <tr><th>Number</th><th>Client</th><th>Amount</th><th>Status</th><th>Due</th><th>Action</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>PayPal Payments & Settlement</h2>
+    <table id="payments-table">
+      <thead>
+        <tr><th>Invoice</th><th>Order ID</th><th>Amount</th><th>Status</th><th>Checkout Link</th><th>Action</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<!-- Modal: Printable Invoice Preview -->
+<div id="invoice-modal-backdrop" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="inv-modal-title">Invoice Preview</h3>
+      <button class="modal-close" onclick="closeInvoiceModal()">&times;</button>
+    </div>
+    <div id="inv-modal-body"></div>
+    <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px;">
+      <button class="btn-secondary" onclick="window.print()">🖨️ Print / Save PDF</button>
+      <button class="btn-primary" onclick="closeInvoiceModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: AI Agent Audit Trail -->
+<div id="audit-modal-backdrop" class="modal-backdrop hidden">
+  <div class="modal" style="max-width: 720px;">
+    <div class="modal-header">
+      <h3>AI Execution Audit Trail (Agent Runs)</h3>
+      <button class="modal-close" onclick="closeAuditModal()">&times;</button>
+    </div>
+    <div id="audit-modal-body" style="font-size: 13px;"></div>
+  </div>
+</div>
+
+<script>
+const API = "/api/v1";
+
+function fmtMoney(v, ccy) {
+  return `${Number(v).toFixed(2)} ${ccy || "USD"}`;
+}
+
+function escapeHtml(text) {
+  return (text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function formatWithLinks(text) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return escapeHtml(text).replace(
+    urlRegex,
+    (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+  );
+}
+
+function addMessage(role, text, calls, isHtml = false) {
+  const wrap = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  
+  if (isHtml) {
+    bubble.innerHTML = text;
+  } else {
+    bubble.innerHTML = formatWithLinks(text);
+  }
+  div.appendChild(bubble);
+
+  // Render Autonomous Agent Reasoning Accordion
+  if (calls && calls.length) {
+    const trace = document.createElement("details");
+    trace.className = "agent-trace";
+    trace.innerHTML = `
+      <summary>🤖 <strong>Agent Reasoning:</strong> ${calls.length} operation(s) executed</summary>
+      <div class="trace-content">
+        ${calls.map(c => `<div class="trace-item"><span class="trace-tag">✓ tool_call:</span> <code>${escapeHtml(c)}</code></div>`).join("")}
+      </div>
+    `;
+    div.appendChild(trace);
+  }
+
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+function sendPrompt(text) {
+  document.getElementById("chat-input").value = text;
+  document.getElementById("chat-form").dispatchEvent(new Event("submit", { cancelable: true }));
+}
+
+async function captureDirect(identifier) {
+  if (!identifier) return;
+  const btn = event?.target;
+  if (btn) btn.disabled = true;
+  
+  try {
+    const res = await fetch(`${API}/payments/capture/${encodeURIComponent(identifier)}`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) {
+      alert("Capture Failed: " + (data.detail || JSON.stringify(data)));
+    } else {
+      addMessage("agent", `<strong>Payment Captured!</strong> Invoice is settled. PayPal Capture ID: <code>${data.paypal_capture_id || "COMPLETED"}</code>. Revenue updated by $${Number(data.amount).toFixed(2)} ${data.currency}.`, null, true);
+      refreshDashboard();
+    }
+  } catch (err) {
+    alert("Error communicating with server: " + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function showInvoiceModal(invoiceId) {
+  const backdrop = document.getElementById("invoice-modal-backdrop");
+  const body = document.getElementById("inv-modal-body");
+  body.innerHTML = "<em>Loading invoice details...</em>";
+  backdrop.classList.remove("hidden");
+
+  try {
+    const res = await fetch(`${API}/invoices/${invoiceId}/detail`);
+    const inv = await res.json();
+    if (!res.ok) throw new Error(inv.detail || "Could not fetch invoice");
+
+    const payment = inv.payments && inv.payments.length ? inv.payments[0] : null;
+
+    body.innerHTML = `
+      <div class="inv-paper">
+        <div class="inv-meta">
+          <div>
+            <h2 style="margin: 0; color: var(--accent);">${inv.invoice_number}</h2>
+            <div style="font-size: 13px; color: var(--ink-soft); margin-top: 4px;">Issued: ${new Date(inv.created_at).toLocaleDateString()}</div>
+            <div style="font-size: 13px; color: var(--ink-soft);">Due Date: ${inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "Upon Receipt"}</div>
+          </div>
+          <div style="text-align: right;">
+            <span class="status ${inv.status}">${inv.status.replace("_", " ")}</span>
+          </div>
+        </div>
+
+        <div style="margin: 16px 0; padding: 12px; background: #faf9f6; border-radius: 6px; font-size: 13.5px;">
+          <strong>Billed To:</strong><br>
+          ${escapeHtml(inv.client_name)}<br>
+          <span style="color: var(--ink-soft); font-size: 12.5px;">${escapeHtml(inv.client_email)}</span>
+          ${inv.company ? `<br><span style="color: var(--ink-soft); font-size: 12px;">${escapeHtml(inv.company)}</span>` : ""}
+        </div>
+
+        <table class="inv-items">
+          <thead><tr><th>Description</th><th style="text-align: right;">Amount</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>${escapeHtml(inv.description)}</td>
+              <td style="text-align: right;"><strong>${fmtMoney(inv.amount, inv.currency)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="inv-total">Total: ${fmtMoney(inv.amount, inv.currency)}</div>
+
+        ${inv.status === "paid" ? `
+          <div style="text-align: center; margin-top: 18px;">
+            <div class="inv-stamp">✓ PAID VIA PAYPAL</div>
+            <div style="font-size: 11px; color: var(--ink-soft); margin-top: 6px; font-family: ui-monospace, monospace;">
+              Capture ID: ${payment ? payment.paypal_capture_id : "Verified"}
+            </div>
+          </div>
+        ` : payment && payment.approval_url ? `
+          <div style="text-align: center; margin-top: 18px;">
+            <a href="${payment.approval_url}" target="_blank" class="btn-primary" style="display: inline-block; padding: 10px 20px; border-radius: 6px; color: #fff;">Pay with PayPal Sandbox</a>
+          </div>
+        ` : ""}
+      </div>
+    `;
+  } catch (e) {
+    body.innerHTML = `<div style="color: var(--warn);">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function closeInvoiceModal() {
+  document.getElementById("invoice-modal-backdrop").classList.add("hidden");
+}
+
+async function openAuditModal() {
+  const backdrop = document.getElementById("audit-modal-backdrop");
+  const body = document.getElementById("audit-modal-body");
+  body.innerHTML = "<em>Loading execution logs...</em>";
+  backdrop.classList.remove("hidden");
+
+  try {
+    const res = await fetch(`${API}/ai/runs?limit=15`);
+    const runs = await res.json();
+    if (!runs.length) {
+      body.innerHTML = "<div class='empty'>No agent runs recorded yet. Send a message to start!</div>";
+      return;
+    }
+
+    body.innerHTML = `
+      <table style="font-size: 12px;">
+        <thead><tr><th>Time</th><th>User Prompt</th><th>Autonomous Tools Executed</th><th>Status</th></tr></thead>
+        <tbody>
+          ${runs.map(r => {
+            let tools = [];
+            try { tools = JSON.parse(r.tool_calls || "[]"); } catch(e){}
+            return `
+              <tr>
+                <td style="white-space: nowrap; color: var(--ink-soft);">${new Date(r.created_at).toLocaleTimeString()}</td>
+                <td><strong>${escapeHtml(r.input_text)}</strong></td>
+                <td>${tools.length ? tools.map(t => `<code style="display:block; margin: 2px 0; background: #eef2ec; padding: 2px 4px; border-radius: 3px;">${escapeHtml(t)}</code>`).join("") : "<em>Direct answer</em>"}</td>
+                <td><span class="status ${r.status === 'completed' ? 'paid' : 'overdue'}">${r.status}</span></td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    body.innerHTML = `<div style="color: var(--warn);">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function closeAuditModal() {
+  document.getElementById("audit-modal-backdrop").classList.add("hidden");
+}
+
+async function resetDemo() {
+  if (!confirm("Reset demo data back to $0.00 revenue and clear all invoices for a clean demo take?")) return;
+  try {
+    const res = await fetch(`${API}/dev/reset`, { method: "POST" });
+    const data = await res.json();
+    document.getElementById("messages").innerHTML = "";
+    addMessage("agent", "<strong>Database Reset!</strong> Clean slate ready for demo recording. Revenue is $0.00.", null, true);
+    refreshDashboard();
+  } catch (err) {
+    alert("Reset failed: " + err.message);
+  }
+}
+
+async function refreshDashboard() {
+  try {
+    const [overview, invoices, payments] = await Promise.all([
+      fetch(`${API}/analytics/overview`).then(r => r.json()),
+      fetch(`${API}/invoices`).then(r => r.json()),
+      fetch(`${API}/payments`).then(r => r.json()),
+    ]);
+
+    const stats = document.getElementById("stats");
+    stats.innerHTML = `
+      <div class="stat"><div class="label">TOTAL REVENUE (USD)</div><div class="value">${fmtMoney(overview.total_revenue)}</div></div>
+      <div class="stat"><div class="label">OUTSTANDING (USD)</div><div class="value">${fmtMoney(overview.outstanding_balance)}</div></div>
+      <div class="stat"><div class="label">PAID INVOICES</div><div class="value">${overview.paid_invoices}</div></div>
+      <div class="stat"><div class="label">PENDING / OVERDUE</div><div class="value">${overview.pending_invoices + overview.overdue_invoices}</div></div>
+    `;
+
+    const invBody = document.querySelector("#invoices-table tbody");
+    invBody.innerHTML = invoices.length ? invoices.map(i => `
+      <tr>
+        <td><a href="#" onclick="showInvoiceModal('${i.id}')" title="Click to view printable invoice"><strong>${i.invoice_number}</strong></a></td>
+        <td>${escapeHtml(i.client_name || "—")}</td>
+        <td>${fmtMoney(i.amount, i.currency)}</td>
+        <td><span class="status ${i.status}">${i.status.replace("_"," ")}</span></td>
+        <td>${i.due_date ? new Date(i.due_date).toLocaleDateString() : "—"}</td>
+        <td>
+          ${i.status === 'awaiting_payment' ? `<button class="btn-xs" onclick="captureDirect('${i.invoice_number}')">Capture</button>` : `<button class="btn-secondary" style="padding: 2px 6px; font-size: 11px;" onclick="showInvoiceModal('${i.id}')">View</button>`}
+        </td>
+      </tr>`).join("") : `<tr><td colspan="6" class="empty">No invoices yet — click a quick-action chip or type a prompt.</td></tr>`;
+
+    const payBody = document.querySelector("#payments-table tbody");
+    payBody.innerHTML = payments.length ? payments.map(p => `
+      <tr>
+        <td><strong>${escapeHtml(p.invoice_number || p.invoice_id.slice(0,8))}</strong></td>
+        <td style="font-family: ui-monospace, monospace; font-size: 11.5px;">${p.paypal_order_id ? p.paypal_order_id.slice(0,10) + '…' : '—'}</td>
+        <td>${fmtMoney(p.amount, p.currency)}</td>
+        <td><span class="status ${p.status === 'captured' ? 'paid' : p.status === 'created' ? 'created' : 'awaiting_payment'}">${p.status}</span></td>
+        <td>${p.approval_url ? `<a href="${p.approval_url}" target="_blank">open link</a>` : "—"}</td>
+        <td>
+          ${p.status === 'created' || p.status === 'approved' ? `<button class="btn-xs" onclick="captureDirect('${p.paypal_order_id}')">Capture</button>` : `<span style="color: var(--accent); font-weight: 600; font-size: 11px;">✓ Settled</span>`}
+        </td>
+      </tr>`).join("") : `<tr><td colspan="6" class="empty">No payments attempted yet.</td></tr>`;
+  } catch (e) {
+    console.error("Dashboard refresh failed", e);
+  }
+}
+
+document.getElementById("chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = document.getElementById("chat-input");
+  const btn = document.getElementById("send-btn");
+  const text = input.value.trim();
+  if (!text) return;
+
+  addMessage("user", text);
+  input.value = "";
+  btn.disabled = true;
+
+  const thinkingDiv = addMessage("agent", "<em>Thinking & executing operations...</em>", null, true);
+
+  try {
+    const res = await fetch(`${API}/ai/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+    const data = await res.json();
+    thinkingDiv.remove();
+
+    if (!res.ok) {
+      addMessage("agent", data.detail || "Something went wrong.");
+    } else {
+      addMessage("agent", data.reply, data.tool_calls);
+    }
+  } catch (err) {
+    thinkingDiv.remove();
+    addMessage("agent", "Could not reach the server: " + err.message);
+  } finally {
+    btn.disabled = false;
+    refreshDashboard();
+  }
+});
+
+addMessage("agent", "Hi — I'm FlowMind AI. I can create invoices, generate PayPal payment links, check payment status, chase overdue clients, and summarize your finances. Click a quick prompt below or type your request!");
+
+// Check if returning from PayPal sandbox checkout
+const params = new URLSearchParams(window.location.search);
+const approvedOrder = params.get("approved_order");
+if (approvedOrder) {
+  addMessage("agent", `<strong>Sandbox Checkout Approved!</strong> PayPal Order ID: <code>${escapeHtml(approvedOrder)}</code>.<br>Click below to capture the payment and finalize settlement.`, null, true);
+  document.getElementById("chat-input").value = `Capture payment for order ${approvedOrder}`;
+}
+
+refreshDashboard();
+</script>
+</body>
+</html>
