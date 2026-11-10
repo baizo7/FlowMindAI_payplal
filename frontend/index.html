@@ -616,7 +616,7 @@ async function refreshDashboard() {
         <td style="font-family: ui-monospace, monospace; font-size: 11.5px;">${p.paypal_order_id ? p.paypal_order_id.slice(0,10) + '…' : '—'}</td>
         <td>${fmtMoney(p.amount, p.currency)}</td>
         <td><span class="status ${p.status === 'captured' ? 'paid' : p.status === 'created' ? 'created' : p.status === 'failed' ? 'overdue' : 'awaiting_payment'}">${p.status}</span></td>
-        <td>${p.approval_url ? `<a href="${p.approval_url}" target="_blank">open link</a>` : "—"}</td>
+        <td>${p.status === 'captured' ? '<span style="color: var(--accent); font-size: 11.5px; font-weight: 500;">✓ Completed</span>' : (p.approval_url ? `<a href="${p.approval_url}" target="_blank" style="font-weight: 600;">🔗 Pay Now</a>` : "—")}</td>
         <td>
           ${p.status === 'captured' ? `<span style="color: var(--accent); font-weight: 600; font-size: 11px;">✓ Settled</span>` : `<button class="btn-xs" onclick="captureDirect('${p.paypal_order_id}')">Capture</button>`}
         </td>
