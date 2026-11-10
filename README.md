@@ -1,22 +1,33 @@
 # FlowMind AI
 
-Autonomous payment operations assistant for freelancers and small businesses.
-Talk to it in plain English — it creates invoices, generates PayPal (sandbox)
-payment links, checks payment status, chases overdue clients, and summarizes
-your finances.
+> **Autonomous payment operations assistant for freelancers and small businesses.**  
+> Talk to it in plain English — it creates invoices, generates PayPal (sandbox) payment links, checks payment status, chases overdue clients, and summarizes your finances.
 
 Built for the **PayPal AI Hackathon 2026 — "Build What's Next with PayPal and AI."**
 
+---
+
+## 🚀 Live Demo
+
+- **Live Deployed Web App:** [https://flowmindai-payplal.onrender.com/](https://flowmindai-payplal.onrender.com/)
+- **GitHub Repository:** [https://github.com/baizo7/FlowMindAI_payplal](https://github.com/baizo7/FlowMindAI_payplal)
+
+---
+
 ## What it does
 
-> "Create an invoice for Priya at priya@example.com for $150 for logo design,
-> due in 3 days."
+> *"Create an invoice for Priya at priya@example.com for $150 for logo design, due in 3 days."*
 
-FlowMind AI (Gemini, via function calling) parses that, creates the invoice,
-and can immediately generate a real PayPal sandbox checkout link. Once the
-sandbox buyer approves it, ask the assistant to capture the payment and the
-dashboard updates with verified revenue — not just a chat message claiming
-it worked.
+FlowMind AI (powered by Google Gemini function calling) parses the prompt, creates the invoice in the database, and immediately generates a live PayPal sandbox checkout link. Once approved in sandbox, the assistant captures the funds, settles the invoice to **Paid**, and updates the live revenue dashboard with verified settlements — never fake claims.
+
+### Key Features
+
+- 🤖 **Autonomous AI Agent**: Google Gemini (`gemini-3.5-flash-lite`) function-calling orchestrator controlling 8 backend tools.
+- 💳 **PayPal Orders API v2**: Real sandbox OAuth2 authentication, order creation with `NO_SHIPPING` optimization, buyer approval, and capture.
+- ⚡ **Auto-Capture & 1-Click Capture**: Seamless return flow captures funds automatically upon return or via a 1-click dashboard button.
+- 🖨️ **Printable Invoice Modal**: Click any invoice ID to open a professional, printable invoice preview with `window.print()` / PDF export.
+- 🔍 **AI Execution Audit Trail**: Transparent log showing judges and users every tool call, argument, timestamp, and status.
+- 🔄 **1-Click Demo Reset**: Reset database back to clean $0.00 revenue anytime for clean demo video takes.
 
 ## Why it's simple on purpose
 
@@ -116,17 +127,20 @@ Open **http://localhost:8000** — the chat UI and dashboard are both there.
 5. Try: `What's my financial summary?` or `Send reminders for overdue
    invoices` (backdate a due date via the API to see this fire).
 
-## Deployment
+## Deployment (Render)
 
-Single Render Web Service is enough — this app serves the frontend and API
-from one FastAPI process:
+The application is deployed on Render as a single unified service:
 
-- **Build command:** `pip install -r backend/requirements.txt`
-- **Start command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir backend`
-- **Environment variables:** same as `.env` above, set in Render's dashboard.
-- SQLite file lives on the instance disk — fine for a hackathon demo; swap
-  `DATABASE_URL` to a Postgres connection string for anything longer-lived
-  (the code doesn't need to change, SQLAlchemy handles both).
+- **Live URL:** [https://flowmindai-payplal.onrender.com/](https://flowmindai-payplal.onrender.com/)
+- **Build command:** `pip install -r requirements.txt`
+- **Start command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- **Environment variables:**
+  - `PAYPAL_CLIENT_ID`
+  - `PAYPAL_CLIENT_SECRET`
+  - `PAYPAL_BASE_URL` (`https://api-m.sandbox.paypal.com`)
+  - `GEMINI_API_KEY`
+  - `GEMINI_MODEL` (`gemini-3.5-flash-lite`)
+  - `RENDER_EXTERNAL_URL` (automatically detected by Render for instant redirect capture)
 
 ## AI tools used
 
