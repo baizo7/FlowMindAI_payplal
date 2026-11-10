@@ -23,11 +23,15 @@ class Settings:
         "PAYPAL_BASE_URL", "https://api-m.sandbox.paypal.com"
     )
     # Where PayPal should send the buyer back after approving the order.
+    # Automatically picks up Render's RENDER_EXTERNAL_URL if deployed, or falls back to localhost.
+    _render_url: str = os.getenv("RENDER_EXTERNAL_URL", "").rstrip("/")
     PAYPAL_RETURN_URL: str = os.getenv(
-        "PAYPAL_RETURN_URL", "http://localhost:8000/payment-complete"
+        "PAYPAL_RETURN_URL",
+        f"{_render_url}/payment-complete" if _render_url else "http://localhost:8000/payment-complete"
     )
     PAYPAL_CANCEL_URL: str = os.getenv(
-        "PAYPAL_CANCEL_URL", "http://localhost:8000/payment-cancelled"
+        "PAYPAL_CANCEL_URL",
+        f"{_render_url}/payment-cancelled" if _render_url else "http://localhost:8000/payment-cancelled"
     )
     PAYPAL_WEBHOOK_ID: str = os.getenv("PAYPAL_WEBHOOK_ID", "")
 
