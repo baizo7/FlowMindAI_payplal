@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: flowmind-ai
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir backend
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: PAYPAL_RETURN_URL
+        sync: false
+      - key: PAYPAL_CANCEL_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: DATABASE_URL
+        value: sqlite:///./flowmind.db
+      - key: DEFAULT_CURRENCY
+        value: USD
