@@ -79,6 +79,7 @@ def create_order(amount: float, currency: str, description: str, invoice_id: str
         "application_context": {
             "return_url": settings.PAYPAL_RETURN_URL,
             "cancel_url": settings.PAYPAL_CANCEL_URL,
+            "shipping_preference": "NO_SHIPPING",
             "user_action": "PAY_NOW",
             "brand_name": "FlowMind AI",
         },
