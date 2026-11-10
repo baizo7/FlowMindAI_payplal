@@ -62,12 +62,42 @@ async def paypal_webhook(request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/payment-complete", response_class=HTMLResponse)
-def payment_complete(request: Request, token: str = "", PayerID: str = ""):
+def payment_complete(request: Request, token: str = "", PayerID: str = "", db: Session = Depends(get_db)):
+    captured = False
+    capture_id = ""
+    amount_str = ""
+    
+    if token:
+        try:
+            res = tools.capture_payment(db, token)
+            if res.get("status") == "captured":
+                captured = True
+                capture_id = res.get("paypal_capture_id", "")
+                amount_str = f"{res.get('amount', 0):.2f} {res.get('currency', 'USD')}"
+        except Exception:
+            pass
+
+    if captured:
+        badge_text = "✓ Payment Captured & Settled"
+        title_text = "Payment Successfully Completed!"
+        desc_text = f"The PayPal sandbox payment of <strong>${amount_str}</strong> was captured and settled. Total Revenue and Invoice status have been automatically updated."
+        btn_text = "Return to Dashboard"
+        meta_refresh = '<meta http-equiv="refresh" content="3;url=/?captured=true" />'
+        extra_detail = f'<div style="font-size: 13px; color: #4b5a51; margin-bottom: 20px;">PayPal Capture ID: <code>{capture_id}</code></div>'
+    else:
+        badge_text = "PayPal Sandbox Approved"
+        title_text = "Payment Approved by Buyer"
+        desc_text = "The buyer has authorized this transaction. Click below to return to FlowMind AI and finalize settlement."
+        btn_text = "Return to FlowMind AI to Capture"
+        meta_refresh = ""
+        extra_detail = ""
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+{meta_refresh}
 <title>PayPal Sandbox Approval — FlowMind AI</title>
 <style>
   body {{
@@ -111,7 +141,7 @@ def payment_complete(request: Request, token: str = "", PayerID: str = ""):
     border-radius: 6px;
     font-size: 13.5px;
     display: inline-block;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     word-break: break-all;
   }}
   .btn {{
@@ -130,11 +160,12 @@ def payment_complete(request: Request, token: str = "", PayerID: str = ""):
 </head>
 <body>
 <div class="card">
-  <div class="badge">PayPal Sandbox Approved</div>
-  <h1>Payment Approved by Buyer</h1>
-  <p>The buyer has authorized this transaction. To complete the settlement, return to FlowMind AI and ask the agent to capture the order.</p>
-  <div class="order-id">Order ID: {token or "N/A"}</div>
-  <a class="btn" href="/?approved_order={token}">Return to FlowMind AI to Capture</a>
+  <div class="badge">{badge_text}</div>
+  <h1>{title_text}</h1>
+  <p>{desc_text}</p>
+  <div class="order-id">PayPal Order ID: {token or "N/A"}</div>
+  {extra_detail}
+  <a class="btn" href="/?approved_order={token}">{btn_text}</a>
 </div>
 </body>
 </html>"""

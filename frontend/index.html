@@ -667,7 +667,11 @@ addMessage("agent", "Hi — I'm FlowMind AI. I can create invoices, generate Pay
 // Check if returning from PayPal sandbox checkout
 const params = new URLSearchParams(window.location.search);
 const approvedOrder = params.get("approved_order");
-if (approvedOrder) {
+const wasCaptured = params.get("captured");
+if (wasCaptured) {
+  addMessage("agent", "<strong>Payment Automatically Settled!</strong> PayPal Sandbox funds have been captured and deposited into your account. Total Revenue updated!", null, true);
+  window.history.replaceState({}, document.title, window.location.pathname);
+} else if (approvedOrder) {
   addMessage("agent", `<strong>Sandbox Checkout Approved!</strong> PayPal Order ID: <code>${escapeHtml(approvedOrder)}</code>.<br>Click below to capture the payment and finalize settlement.`, null, true);
   document.getElementById("chat-input").value = `Capture payment for order ${approvedOrder}`;
 }

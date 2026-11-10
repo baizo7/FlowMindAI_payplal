@@ -23,8 +23,13 @@ class Settings:
         "PAYPAL_BASE_URL", "https://api-m.sandbox.paypal.com"
     )
     # Where PayPal should send the buyer back after approving the order.
-    # Automatically picks up Render's RENDER_EXTERNAL_URL if deployed, or falls back to localhost.
+    # Automatically picks up Render's RENDER_EXTERNAL_URL or hostname, or defaults to production Render / localhost.
     _render_url: str = os.getenv("RENDER_EXTERNAL_URL", "").rstrip("/")
+    if not _render_url and os.getenv("RENDER_EXTERNAL_HOSTNAME"):
+        _render_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}".rstrip("/")
+    if not _render_url and (os.getenv("RENDER") or os.getenv("PORT")):
+        _render_url = "https://flowmindai-payplal.onrender.com"
+
     PAYPAL_RETURN_URL: str = os.getenv(
         "PAYPAL_RETURN_URL",
         f"{_render_url}/payment-complete" if _render_url else "http://localhost:8000/payment-complete"
