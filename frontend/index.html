@@ -440,7 +440,12 @@ async function captureDirect(identifier) {
     const res = await fetch(`${API}/payments/capture/${encodeURIComponent(identifier)}`, { method: "POST" });
     const data = await res.json();
     if (!res.ok) {
-      alert("Capture Failed: " + (data.detail || JSON.stringify(data)));
+      const errText = data.detail || JSON.stringify(data);
+      if (errText.includes("not approved") || errText.includes("ORDER_NOT_APPROVED")) {
+        alert("⚠️ Order Not Approved Yet:\n\nPlease open the PayPal checkout link first, log in with your sandbox buyer account, and click 'Complete Purchase'. Once approved in PayPal, click Capture again!");
+      } else {
+        alert("Capture Failed: " + errText);
+      }
     } else {
       addMessage("agent", `<strong>Payment Captured!</strong> Invoice is settled. PayPal Capture ID: <code>${data.paypal_capture_id || "COMPLETED"}</code>. Revenue updated by $${Number(data.amount).toFixed(2)} ${data.currency}.`, null, true);
       refreshDashboard();
@@ -610,10 +615,10 @@ async function refreshDashboard() {
         <td><strong>${escapeHtml(p.invoice_number || p.invoice_id.slice(0,8))}</strong></td>
         <td style="font-family: ui-monospace, monospace; font-size: 11.5px;">${p.paypal_order_id ? p.paypal_order_id.slice(0,10) + '…' : '—'}</td>
         <td>${fmtMoney(p.amount, p.currency)}</td>
-        <td><span class="status ${p.status === 'captured' ? 'paid' : p.status === 'created' ? 'created' : 'awaiting_payment'}">${p.status}</span></td>
+        <td><span class="status ${p.status === 'captured' ? 'paid' : p.status === 'created' ? 'created' : p.status === 'failed' ? 'overdue' : 'awaiting_payment'}">${p.status}</span></td>
         <td>${p.approval_url ? `<a href="${p.approval_url}" target="_blank">open link</a>` : "—"}</td>
         <td>
-          ${p.status === 'created' || p.status === 'approved' ? `<button class="btn-xs" onclick="captureDirect('${p.paypal_order_id}')">Capture</button>` : `<span style="color: var(--accent); font-weight: 600; font-size: 11px;">✓ Settled</span>`}
+          ${p.status === 'captured' ? `<span style="color: var(--accent); font-weight: 600; font-size: 11px;">✓ Settled</span>` : `<button class="btn-xs" onclick="captureDirect('${p.paypal_order_id}')">Capture</button>`}
         </td>
       </tr>`).join("") : `<tr><td colspan="6" class="empty">No payments attempted yet.</td></tr>`;
   } catch (e) {

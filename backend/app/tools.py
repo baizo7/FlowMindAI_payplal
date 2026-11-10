@@ -185,9 +185,16 @@ def capture_payment(db: Session, paypal_order_id: str) -> dict:
     try:
         result = paypal_client.capture_order(target_id)
     except paypal_client.PayPalError as e:
+        err_msg = str(e)
+        if "ORDER_NOT_APPROVED" in err_msg:
+            return {
+                "error": "The buyer has not approved this order on PayPal yet. "
+                         "Please open the checkout link, log in to PayPal Sandbox, "
+                         "and click 'Complete Purchase' before capturing."
+            }
         payment.status = "failed"
         db.commit()
-        return {"error": str(e)}
+        return {"error": err_msg}
 
     status = result.get("status")
     if status == "COMPLETED":
