@@ -676,6 +676,10 @@ if (wasCaptured) {
   document.getElementById("chat-input").value = `Capture payment for order ${approvedOrder}`;
 }
 
+// Auto-refresh when tab gains focus or periodically every 6s
+window.addEventListener("focus", refreshDashboard);
+setInterval(refreshDashboard, 6000);
+
 refreshDashboard();
 </script>
 </body>
