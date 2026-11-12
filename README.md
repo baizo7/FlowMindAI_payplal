@@ -144,21 +144,27 @@ The application is deployed on Render as a single unified service:
 
 ## AI tools used
 
-- **Google Gemini** (`gemini-3.5-flash-lite` via the `google-genai` SDK) — natural
-  language understanding and function-calling orchestration. Gemini decides
-  *which* of the backend tools to call and with what arguments; it never
-  executes financial logic itself.
-- **APIMatic Context Plugin** *(optional sponsor tool)* — used during
-  development to give the AI coding assistant accurate PayPal API context
-  while building `paypal_client.py`.
+- **Google Gemini** (`gemini-3.5-flash-lite` via the official `google-genai` 3.0.0 SDK):
+  - Natural language parsing and autonomous function-calling orchestration.
+  - Interfaces directly with 8 typed financial tools (`create_invoice`, `get_invoice`, `list_invoices`, `create_payment_order`, `capture_payment`, `get_payment_status`, `send_overdue_reminders`, `get_financial_summary`).
+  - Strict financial boundaries: Gemini has zero direct database write permissions. State mutations from `draft` to `paid` are mathematically constrained and only trigger upon verified PayPal API capture responses.
+- **APIMatic Context Plugin** *(Hackathon Sponsor Tool)*:
+  - Used during development to supply accurate PayPal Orders v2 OpenAPI specifications and schema contracts to the AI coding agent while architecting `paypal_client.py`.
 
 ## PayPal integration
 
-- **Orders API v2** (sandbox): `POST /v2/checkout/orders`,
-  `POST /v2/checkout/orders/{id}/capture`, `GET /v2/checkout/orders/{id}`.
-- OAuth2 client-credentials token flow, cached in memory.
-- See `backend/app/paypal_client.py` for the full implementation and notes
-  on the webhook-verification simplification.
+- **Orders API v2** (sandbox on `api-m.sandbox.paypal.com`):
+  - `POST /v2/checkout/orders`: Creates digital service checkout orders with `intent: CAPTURE` and `shipping_preference: NO_SHIPPING` for instant checkout approval.
+  - `POST /v2/checkout/orders/{id}/capture`: Cryptographically settles buyer-authorized funds, returning a verified `paypal_capture_id`.
+  - `GET /v2/checkout/orders/{id}`: Inspects real-time order state (`CREATED`, `APPROVED`, `COMPLETED`).
+- **OAuth2 Token Flow**: Client-credentials flow using sandbox `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` with thread-safe in-memory caching.
+- **Instant Auto-Capture**: Return handler at `/payment-complete` automatically captures the order upon redirect from PayPal, eliminating manual capture clicks.
+- **PayPal Webhooks API**: Cryptographic signature verification listener implemented at `POST /api/v1/webhooks/paypal` using PayPal's `/v1/notifications/verify-webhook-signature` endpoint.
+
+## Sponsor integrations
+
+- **Render**: Unified cloud deployment hosting both the FastAPI backend and frontend at [https://flowmindai-payplal.onrender.com/](https://flowmindai-payplal.onrender.com/).
+- **APIMatic**: OpenAPI specification and context tooling for PayPal REST APIs.
 
 ## License
 
